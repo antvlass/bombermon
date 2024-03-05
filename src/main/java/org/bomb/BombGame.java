@@ -8,8 +8,8 @@ import org.bomb.view.Sound;
 public class BombGame implements Runnable{
     private Thread thread;
     public boolean running;
-    private GameController controller;
-    private GamePanel panel;
+    private final GameController controller;
+    private final GamePanel panel;
 
     public static Sound sound = new Sound();
     public static GameState STATE;

@@ -172,7 +172,7 @@ public class GamePanel extends JPanel implements MouseListener{
 			if(b.getDx()<0)
 				anim[0].drawAnimation(g, b.getX(),b.getY(),b.getWidth(),b.getHeight());
 			else
-				g.drawImage(images[0+animPause], b.getX(),b.getY(),b.getWidth(),b.getHeight(),null);
+				g.drawImage(images[animPause], b.getX(),b.getY(),b.getWidth(),b.getHeight(),null);
 		}
 		else if(b.getDir()==2){
 			if(b.getDx()>0)

@@ -26,19 +26,19 @@ public class GameController implements KeyListener{
 	private EnemyHandler handler;
 	private Bomberman winner;
 	private Bomberman player;
-	
+
 	//cheatCode
-	private String cheatCode= "pok";  
+	private final String cheatCode= "pok";
 	private ArrayList<String> cheat;
 	private int cheatTime=0;
 	private boolean cheatActivated;
 	
 	//Mouvements du joueur
 	//left 0 ; right 1 ; up 3 ; down 4
-	private boolean[] keyPressedP1 = new boolean[4];
-	private boolean[] keyPressedP2 = new boolean[4];
-	private boolean[] keyPressedP3 = new boolean[4];
-	private boolean[] keyPressedP4 = new boolean[4];
+	private final boolean[] keyPressedP1 = new boolean[4];
+	private final boolean[] keyPressedP2 = new boolean[4];
+	private final boolean[] keyPressedP3 = new boolean[4];
+	private final boolean[] keyPressedP4 = new boolean[4];
 	
 	private int invinTime=0; //Compteur pour le temps d'invinsibilit�
 	private int pauseCount=0; //Compteur pour la pause; permet de savoir si activ�e ou pas
@@ -64,8 +64,8 @@ public class GameController implements KeyListener{
 		Field mF = new MultiField();
 		blocks = mF.getBlocks();
 		bonus = mF.getBonus();
-		brokenBricks = new ArrayList<Tile>();
-		bombers = new ArrayList<Bomberman>();
+		brokenBricks = new ArrayList<>();
+		bombers = new ArrayList<>();
 		handler = new EnemyHandler();
 	}
 	
@@ -76,10 +76,10 @@ public class GameController implements KeyListener{
 		Field sF = new SoloField();
 		blocks = sF.getBlocks();
 		bonus = sF.getBonus();
-		brokenBricks = new ArrayList<Tile>();
-		bombers = new ArrayList<Bomberman>();
+		brokenBricks = new ArrayList<>();
+		bombers = new ArrayList<>();
 		cheatActivated=false;
-		cheat = new ArrayList<String>();
+		cheat = new ArrayList<>();
 		handler = new EnemyHandler();
 		spawner = new Spawner(handler,bonus,blocks);
 	}
@@ -133,12 +133,11 @@ public class GameController implements KeyListener{
 	 * @return renvoies le mot form� par les lettres contenues dans la liste cheat
 	 */
 	private String makeWord(){
-		String word = "";
-		for (int i=0;i<cheat.size();i++){
-			String letter = cheat.get(i);
-			word+=letter;
-		}
-		return word;
+		StringBuilder word = new StringBuilder();
+        for (String letter : cheat) {
+            word.append(letter);
+        }
+		return word.toString();
 	}
 
 	/**

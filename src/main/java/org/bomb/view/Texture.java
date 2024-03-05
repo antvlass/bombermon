@@ -2,6 +2,8 @@ package org.bomb.view;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
 
 import javax.imageio.ImageIO;
 
@@ -45,7 +47,7 @@ public class Texture {
 	public BufferedImage[] bonus = new BufferedImage[9];
 	
 	//Interface
-	public BufferedImage player[] = new BufferedImage[5];
+	public BufferedImage[] player = new BufferedImage[5];
 	public BufferedImage menuImg;
 	public BufferedImage helpImg;
 	public BufferedImage itemsImg;
@@ -106,11 +108,7 @@ public class Texture {
 	
 	
 	public Texture(int number){//2eme constructeur pour les objets (peut varier en fonction de la partie : aleatoire)
-		String name = "";
-		if(number==0) name="Forest";
-		if(number==1)  name = "Desert";
-		if (number==2) name = "Snow";
-		if (number==3) name = "Cave";
+		String name = List.of("Forest", "Desert", "Snow", "Cave").get(number);
 
 		wall = loadImg("/Objets/"+name+"/wall.png");
 		brick = loadImg("/Objets/"+name+"/brick.png");
@@ -139,7 +137,7 @@ public class Texture {
 	
 	private Animation[] createAnim(BufferedImage[] images, int startValue){
 		Animation[] anim = new Animation[4];
-		anim[0] = new Animation(5,images[0+startValue],images[1+startValue]);
+		anim[0] = new Animation(5,images[startValue],images[1+startValue]);
 		anim[1] = new Animation(5,images[2+startValue],images[3+startValue]);
 		anim[2] = new Animation(5,images[4+startValue],images[5+startValue]);
 		anim[3] = new Animation(5,images[6+startValue],images[7+startValue]);
@@ -149,7 +147,7 @@ public class Texture {
 	private BufferedImage loadImg(String name){
 		BufferedImage image=null;
 		try {
-			image = ImageIO.read(getClass().getResourceAsStream(name));
+			image = ImageIO.read(Objects.requireNonNull(getClass().getResourceAsStream(name)));
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
