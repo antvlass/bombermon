@@ -1,40 +1,49 @@
 package org.bomb.view;
 
-import java.io.*;
 import javax.sound.sampled.*;
+import java.io.*;
 
 public class Sound {
 	private Clip audioClip;
 	private boolean isPlaying = false;
 
-	public Sound() {
+	public Sound() {}
 
-	}
-
-	public void playSound(String name) {//Pour les effets sonores
+	public void playSound(String name) { // For sound effects
 		play(name);
 	}
 
-	public void play(String name) {//Pour les th�mes
+	public void play(String name) { // For background music
+		soundEnd();  // Stop and clean up any playing sound before starting a new one
 		try {
 			InputStream inputStream = getClass().getResourceAsStream("/Audio/" + name + ".wav");
-            assert inputStream != null;
-            BufferedInputStream bufferedIn = new BufferedInputStream(inputStream);
-			AudioInputStream audioStream = AudioSystem.getAudioInputStream(bufferedIn);
-			AudioFormat format = audioStream.getFormat();
-			DataLine.Info info = new DataLine.Info(Clip.class, format);
-			audioClip = (Clip) AudioSystem.getLine(info);
-			audioClip.open(audioStream);
-			audioClip.start();
-			isPlaying = true;
-			audioClip.addLineListener(event -> {
-				if (event.getType() == LineEvent.Type.STOP) {
-					audioClip.close();
-					isPlaying = false;
-				}
-			});
-		} catch (UnsupportedAudioFileException | LineUnavailableException | IOException ex) {
-			ex.printStackTrace();
+			if (inputStream == null) {
+				throw new FileNotFoundException("Audio file not found: " + name);
+			}
+
+			try (BufferedInputStream bufferedIn = new BufferedInputStream(inputStream);
+				 AudioInputStream audioStream = AudioSystem.getAudioInputStream(bufferedIn)) {
+
+				AudioFormat format = audioStream.getFormat();
+				DataLine.Info info = new DataLine.Info(Clip.class, format);
+				audioClip = (Clip) AudioSystem.getLine(info);
+
+				// Open and play the audio
+				audioClip.open(audioStream);
+				audioClip.start();
+				isPlaying = true;
+
+				// Ensure the clip is properly closed when finished
+				audioClip.addLineListener(event -> {
+					if (event.getType() == LineEvent.Type.STOP) {
+						soundEnd(); // Properly close the clip
+					}
+				});
+
+			} // `audioStream` and `bufferedIn` auto-close here
+
+		} catch (UnsupportedAudioFileException | LineUnavailableException | IOException e) {
+			e.printStackTrace();
 		}
 	}
 
@@ -42,8 +51,13 @@ public class Sound {
 		return !isPlaying;
 	}
 
-	//Mets fin au th�me
+	// Stops and cleans up the audio clip
 	public void soundEnd() {
-		audioClip.stop();
+		if (audioClip != null) {
+			audioClip.stop();
+			audioClip.close(); // Release system resources
+			audioClip = null;  // Allow garbage collection
+			isPlaying = false;
+		}
 	}
 }

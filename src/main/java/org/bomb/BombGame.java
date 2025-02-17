@@ -1,93 +1,90 @@
 package org.bomb;
 
+import javax.swing.SwingUtilities;
 import org.bomb.control.GameController;
 import org.bomb.view.GamePanel;
 import org.bomb.view.GameWindow;
 import org.bomb.view.Sound;
 
-public class BombGame implements Runnable{
+public class BombGame implements Runnable {
     private Thread thread;
-    public boolean running;
+    private volatile boolean running = false; // Ensure thread-safety for the game loop
     private final GameController controller;
     private final GamePanel panel;
-
     public static Sound sound = new Sound();
+
     public static GameState STATE;
 
-    public static enum GameState{
-        //Diff�rents phases du jeu
-        Solo,
-        Multi,
-        Menu,
-        Help,
-        Controls,
-        Items,
-        Pause,
-        SoloOver,
-        MultiOver,
-        ChooseMulti,
-        ChooseNumber,
-        ChooseSolo;
+    public enum GameState {
+        Solo, Multi, Menu, Help, Controls, Items, Pause, SoloOver, MultiOver, ChooseMulti, ChooseNumber, ChooseSolo;
     }
 
-    public BombGame(){
+    public BombGame() {
         controller = new GameController();
         panel = new GamePanel(controller);
-        new GameWindow(850,870,panel,this);
+        new GameWindow(850, 870, panel, this);
     }
 
-    /**
-     * Boucle principale du jeu permet l'appel des m�thodes de rendu et de mise � jour
-     */
+    /** Game loop */
     public void run() {
         long lastTime = System.nanoTime();
-        double amountOfUpdates = 60.0; //Nbr d'updates par seconde
-        double ns = 1000000000/amountOfUpdates;
+        long fpsTimer = System.currentTimeMillis();
+        double tickRate = 60.0; // 60 FPS
+        double ns = 1_000_000_000.0 / tickRate;
         double delta = 0;
-        STATE = GameState.Menu; //On d�marre la jeu dans le menu
+        int frames = 0;
+
+        STATE = GameState.Menu; // ✅ Keeping it static
         sound.play("menu");
-        while(running){
+
+        while (running) {
             long now = System.nanoTime();
-            delta+= (now-lastTime)/ns;
-            lastTime=now;
-            while(delta>=1){//Maintenir 60 updates par seconde
+            delta += (now - lastTime) / ns;
+            lastTime = now;
+
+            while (delta >= 1) {
                 controller.update();
                 delta--;
             }
-            panel.repaint();
+
+            // Ensure UI updates on the EDT (Event Dispatch Thread)
+            SwingUtilities.invokeLater(panel::repaint);
+            frames++;
+
+            // FPS Display (debugging)
+            if (System.currentTimeMillis() - fpsTimer >= 1000) {
+                System.out.println("FPS: " + frames);
+                frames = 0;
+                fpsTimer += 1000;
+            }
+
+            try {
+                Thread.sleep(16); // Limit CPU usage
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
         stop();
     }
 
-    /**
-     * Lancement d'un nouveau thread
-     */
-    public synchronized void start(){
-        if(running) return;
+    public synchronized void start() {
+        if (running) return;
+        running = true;
         thread = new Thread(this);
         thread.start();
-        running=true;
-
     }
-    /**
-     * Arr�t de notre thread
-     */
-    public synchronized void stop(){
-        if(!running) return;
+
+    public synchronized void stop() {
+        if (!running) return;
+        running = false;
         try {
             thread.join();
-            running=false;
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-
-
-
     public static void main(String[] args) {
-        new BombGame();
-
+        new BombGame().start();  // Ensure the game starts correctly with static STATE
     }
 }
-
