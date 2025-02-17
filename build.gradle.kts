@@ -9,6 +9,8 @@ version = "1.0"
 
 application { mainClass.set("org.bomb.BombGame") }
 
+java {  toolchain.languageVersion.set(JavaLanguageVersion.of(21)) }
+
 repositories {
     mavenCentral()
 }
