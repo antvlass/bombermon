@@ -5,7 +5,9 @@ import java.awt.Graphics;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
+import java.io.Serial;
 import java.util.ArrayList;
+import java.util.Map;
 import java.util.Random;
 
 import javax.swing.JPanel;
@@ -26,22 +28,33 @@ import org.bomb.model.Tile;
 
 public class GamePanel extends JPanel implements MouseListener{
 	
+	@Serial
 	private static final long serialVersionUID = 1L;
-	private GameController controller;
+	private final GameController controller;
 	private ArrayList<Tile> backG;
 	
-	private Texture tex;
+	private static final Texture tex = new Texture();
 	private Texture texRandom;
-	
-	//Attributs li�s au choix du pok�mon
+
 	private int chooseCount1=0,chooseCount2=0;
-	private Color[] rectangleColor1 = new Color[4];
-	private Color[] rectangleColor2 = new Color[4];
+	private final Color[] rectangleColor1 = new Color[4];
+	private final Color[] rectangleColor2 = new Color[4];
 	private String type1,type2;
 	private int numberPlayers;
+	private static final Random random = new Random();
 
 	//Son
-	private Sound s = new Sound();
+	private static final Sound s = new Sound();
+
+	private static final Map<Integer, Font> FONT_MAP = Map.of(
+			12, new Font("Calibri", Font.PLAIN, 12),
+			15, new Font("Calibri", Font.PLAIN, 15),
+			30, new Font("Calibri", Font.PLAIN, 30),
+			35, new Font("Calibri", Font.PLAIN, 35),
+			40, new Font("Calibri", Font.PLAIN, 40),
+			100, new Font("Calibri", Font.PLAIN, 100)
+	);
+	private static final Color TEXT_COLOR = Color.black;
 	
 	public GamePanel(GameController controller){
 		this.controller=controller;	
@@ -50,112 +63,85 @@ public class GamePanel extends JPanel implements MouseListener{
 		this.setFocusable(true);
 	    this.setDoubleBuffered(true);
 	    createBackG();
-	    tex = new Texture();
 	    for(int i=0;i<4;i++) rectangleColor1[i]=Color.white;
 	    for(int i=0;i<4;i++) rectangleColor2[i]=Color.white;
 	}
-	
-	//Renvoies une texture al�atoire
+
 	private Texture randomLevelTexture(){
-	    Random r = new Random();
-	    int number = r.nextInt(4);
-	    return new Texture(number);
+	    return new Texture(random.nextInt(4));
 	}
-	
-	/**
-	 * @param type : type du pok�mon
-	 * @return renvoies un nombre en fonction du type du pok�mon
-	 */
-	private int stringToInt(String type){
-		int number=0;
-		if(type=="E") number=1;
-		if(type=="P") number=2;
-		if(type=="V") number=3;
-		if(type=="Cheat") number=4;
-		return number;
+
+	private int stringToInt(String type) {
+		return switch (type) {
+			case "E" -> 1;
+			case "P" -> 2;
+			case "V" -> 3;
+			case "Cheat" -> 4;
+			default -> 0;
+		};
 	}
-	
-	//Cr�ation du fond d'�cran constitu� de cases
-	private void createBackG(){
-		backG = new ArrayList<Tile>();
-		for(int j=2;j <= 16;j+=1){
-			for(int i=0;i <=16;i+=1){
-				Tile tempT = new Tile(i*50,j*50,50,50,ID.Wall);
-				backG.add(tempT);
+
+	private void createBackG() {
+		final int START_ROW = 2, END_ROW = 16, END_COL = 16, TILE_SIZE = 50;
+		int capacity = (END_ROW - START_ROW + 1) * (END_COL + 1); // Precompute required size
+		backG = new ArrayList<>(capacity);  // Initialize with expected capacity
+
+		for (int j = START_ROW; j <= END_ROW; j++) {
+			int y = j * TILE_SIZE;  // Precompute Y once per row
+			for (int i = 0; i <= END_COL; i++) {
+				backG.add(new Tile(i * TILE_SIZE, y, TILE_SIZE, TILE_SIZE, ID.Wall));
 			}
 		}
 	}
-	
-	/**
-	 * @param mx : position en x de la souris
-	 * @param my : positio en y de la souris
-	 * @param x
-	 * @param y
-	 * @param width
-	 * @param height
-	 * @return renvoies true si la souris se trouve dans la r�gion delimit�e par (x,y,width,height)
-	 */
+
 	private boolean mouseOver(int mx, int my,int x,int y, int width, int height){
-		boolean isOver = false;
-		if((mx > x && mx < x+width) && (my > y && my < y+height))
-			isOver=true;
-		return isOver;
+        return (mx > x && mx < x + width) && (my > y && my < y + height);
 	}
-	
-	/**
-	 * @param g
-	 * @param e
-	 * Dessine l'animation de l'ennemi en fonction de son ID
-	 */
+
 	private void enemyAnim(Graphics g,Enemy e){
-		Animation[] anim = new Animation[4];
-		if(e.getId()==ID.BasicE) anim = tex.animBE;
-		if(e.getId()==ID.FastE) anim = tex.animFE;
-		if(e.getId()==ID.SmartE) anim = tex.animSE;
-		if(e.getId()==ID.Boss) anim = tex.animBoss;
-		
-		anim[0].runAnimation();anim[1].runAnimation();anim[2].runAnimation();anim[3].runAnimation();
-		
-		if(e.getDx()<0)
-			anim[0].drawAnimation(g, e.getX(), e.getY(),e.getWidth(),e.getHeight());
-		if(e.getDx()>0)
-			anim[1].drawAnimation(g, e.getX(), e.getY(),e.getWidth(),e.getHeight());
-		if(e.getDy()<0)
-			anim[2].drawAnimation(g, e.getX(), e.getY(),e.getWidth(),e.getHeight());
-		if(e.getDy()>0)
-			anim[3].drawAnimation(g, e.getX(), e.getY(),e.getWidth(),e.getHeight());
+		Animation[] anim;
+		switch (e.getId()) {
+			case BasicE -> anim = tex.animBE;
+			case FastE -> anim = tex.animFE;
+			case SmartE -> anim = tex.animSE;
+			case Boss -> anim = tex.animBoss;
+			default -> anim = new Animation[4];  // Avoid uninitialized array
+		}
+		for (Animation a : anim) {
+			a.runAnimation();
+		}
+
+		if(e.getDx() < 0) anim[0].drawAnimation(g, e.getX(), e.getY(), e.getWidth(), e.getHeight());
+		else if(e.getDx() > 0) anim[1].drawAnimation(g, e.getX(), e.getY(), e.getWidth(), e.getHeight());
+		else if(e.getDy() < 0) anim[2].drawAnimation(g, e.getX(), e.getY(), e.getWidth(), e.getHeight());
+		else if(e.getDy() > 0) anim[3].drawAnimation(g, e.getX(), e.getY(), e.getWidth(), e.getHeight());
 	}
-	
-	/**
-	 * @param g
-	 * @param b
-	 * Dessine le bomberman en fonction de son type et de son �volution ou si le cheat est activ�
-	 */
+
 	private void bomberAnim(Graphics g, Bomberman b){
 		Animation[] anim = new Animation[4];
 		BufferedImage[] images = new BufferedImage[24];
 		int animPause = 0;
-		
+
 		if(b.getType().equals("F")){
-			if(b.getEvol()==1) anim=tex.fire[0]; 
+			if(b.getEvol()==1) anim=tex.fire[0];
 			else if(b.getEvol()==2){anim=tex.fire[1]; animPause=8;}
 			else{anim=tex.fire[2];animPause=16;}
 			images=tex.fireImg;
 		}
 		if(b.getType().equals("E")){
-			if(b.getEvol()==1) anim=tex.water[0]; 
+			if(b.getEvol()==1) anim=tex.water[0];
 			else if(b.getEvol()==2){anim=tex.water[1]; animPause=8;}
 			else{anim=tex.water[2];animPause=16;}
 			images=tex.waterImg;
 		}
 		if(b.getType().equals("P")){
-			if(b.getEvol()==1) anim=tex.grass[0]; 
+			if(b.getEvol()==1) anim=tex.grass[0];
 			else if(b.getEvol()==2){anim=tex.grass[1]; animPause=8;}
 			else{anim=tex.grass[2];animPause=16;}
 			images=tex.grassImg;
 		}
 		if(b.getType().equals("V")){
-			if(b.getEvol()==1) anim=tex.fly[0]; 
+			if(b.getEvol()==1) anim=tex.fly[0];
 			else if(b.getEvol()==2){anim=tex.fly[1]; animPause=8;}
 			else{anim=tex.fly[2];animPause=16;}
 			images=tex.flyImg;
@@ -165,7 +151,7 @@ public class GamePanel extends JPanel implements MouseListener{
 			images=tex.cheatImg;
 			animPause = 0;
 		}
-		
+
 		anim[0].runAnimation();anim[1].runAnimation();anim[2].runAnimation();anim[3].runAnimation();
 
 		if(b.getDir()==1){
@@ -195,10 +181,6 @@ public class GamePanel extends JPanel implements MouseListener{
 
 	}
 
-	/**
-	 * @param g
-	 * Dessine tous les objets du jeu
-	 */
 	private void drawObjects(Graphics g){
 		//Statiques
 		for(Tile bg : backG) 
@@ -265,11 +247,13 @@ public class GamePanel extends JPanel implements MouseListener{
 	public void paintComponent(Graphics g){
 		//super.paintComponent(g);
 
+
+
 		if(BombGame.STATE == GameState.Multi){
 			if(numberPlayers==2){
 				g.drawImage(texRandom.statusMulti2Img, 0, 0,null);
-				g.setColor(Color.black);
-				g.setFont(new Font("Calibri",Font.PLAIN,15));
+				g.setColor(TEXT_COLOR);
+				g.setFont(FONT_MAP.get(15));
 				for(int i=0;i<controller.getBombers().size();i++){
 					Bomberman b = controller.getBomber(i);
 					if(b.getId()==ID.Player1){
@@ -294,8 +278,8 @@ public class GamePanel extends JPanel implements MouseListener{
 			
 			if(numberPlayers==3){
 				g.drawImage(texRandom.statusMulti3Img, 0, 0,null);
-				g.setColor(Color.black);
-				g.setFont(new Font("Calibri",Font.PLAIN,12));
+				g.setColor(TEXT_COLOR);
+				g.setFont(FONT_MAP.get(12));
 				for(int i=0;i<controller.getBombers().size();i++){
 					Bomberman b = controller.getBomber(i);
 					if(b.getId()==ID.Player1){
@@ -321,8 +305,8 @@ public class GamePanel extends JPanel implements MouseListener{
 			
 			if(numberPlayers==4){
 				g.drawImage(texRandom.statusMulti4Img, 0, 0,null);
-				g.setColor(Color.black);
-				g.setFont(new Font("Calibri",Font.PLAIN,15));
+				g.setColor(TEXT_COLOR);
+				g.setFont(FONT_MAP.get(15));
 				for(int i=0;i<controller.getBombers().size();i++){
 					Bomberman b = controller.getBomber(i);
 					if(b.getId()==ID.Player1) g.drawString("x"+b.getLives(),125,58);
@@ -340,16 +324,16 @@ public class GamePanel extends JPanel implements MouseListener{
 			g.drawImage(texRandom.statusSoloImg, 0, 0,null);
 			String player = controller.getPlayer().getType();
 			g.drawImage(tex.player[stringToInt(player)], 40, 25, 50,50,null);
-			g.setColor(Color.black);
-			g.setFont(new Font("Calibri",Font.PLAIN,15));
+			g.setColor(TEXT_COLOR);
+			g.setFont(FONT_MAP.get(15));
 			g.drawString("x"+controller.getPlayer().getLives(),135,58);
 			g.drawString("x"+controller.getPlayer().getMineCount(),205,58);
 			g.drawString("x"+controller.getPlayer().getMaxBombs(),270,58);
 			g.drawString("x"+controller.getPlayer().getBombRange(),330,58);
 			g.drawString("x"+controller.getPlayer().getProjectileCount(),395,58);
-			g.setFont(new Font("Calibri",Font.PLAIN,40));
+			g.setFont(FONT_MAP.get(40));
 			g.drawString(controller.getSpawner().getLevel()+"",570,65);
-			g.setFont(new Font("Calibri",Font.PLAIN,30));
+			g.setFont(FONT_MAP.get(30));
 			g.drawString(controller.getPlayer().getScore()+"",750,63);
 			
 			//Objets
@@ -385,7 +369,7 @@ public class GamePanel extends JPanel implements MouseListener{
 				g.drawImage(tex.player[stringToInt(winner)], 320, 260, 200,200,null);
 			}
 			else{
-				g.setFont(new Font("Calibri",Font.PLAIN,100)); 
+				g.setFont(FONT_MAP.get(100));
 				g.drawString("�galit� !",280,400); //Si les 2 derniers joueurs perdent leur vie en m�me temps il y'a �galit�
 				g.setColor(Color.white);
 				g.fillRect(320, 520, 200, 100);
@@ -394,17 +378,16 @@ public class GamePanel extends JPanel implements MouseListener{
 		
 		if(BombGame.STATE == GameState.SoloOver){
 			g.drawImage(tex.soloOverImg, 0, 0,850 ,850,null);
-			g.setColor(Color.black);
-			g.setFont(new Font("Calibri",Font.PLAIN,35));
+			g.setColor(TEXT_COLOR);
+			g.setFont(FONT_MAP.get(35));
 			g.drawString(controller.getSpawner().getLevel()+"",700,615);
 			g.drawString(controller.getHighScore().split(":")[0],330 ,268);
 			g.drawString(controller.getHighScore().split(":")[2],310,410);
-			g.setFont(new Font("Calibri",Font.PLAIN,30));
+			g.setFont(FONT_MAP.get(30));
 			g.drawString(controller.getPlayer().getScore()+"",300,614);
 			g.drawString(controller.getHighScore().split(":")[1],310,345);	
 		}
-		
-		
+
 		if(BombGame.STATE == GameState.ChooseNumber){
 			g.drawImage(tex.chooseNumber, 0, 0,850 ,850,null);
 		}
@@ -443,11 +426,11 @@ public class GamePanel extends JPanel implements MouseListener{
 			g.drawRect(465, 420, 90, 90);
 			g.setColor(rectangleColor1[3]);
 			g.drawRect(640, 420, 90, 90);
-			g.setColor(Color.black);
-			g.setFont(new Font("Calibri",Font.PLAIN,35));
+			g.setColor(TEXT_COLOR);
+			g.setFont(FONT_MAP.get(35));
 			g.drawString(controller.getHighScore().split(":")[0],460 ,210);
 			g.drawString(controller.getHighScore().split(":")[2],435,345);
-			g.setFont(new Font("Calibri",Font.PLAIN,30));
+			g.setFont(FONT_MAP.get(30));
 			g.drawString(controller.getHighScore().split(":")[1],435,285);
 		}
 		
@@ -527,7 +510,7 @@ public class GamePanel extends JPanel implements MouseListener{
 				texRandom = randomLevelTexture();
 				controller.initSolo();
 				controller.getBombers().add(new Bomberman(8*50,15*50,50,50,ID.Player1,type1,1));
-				controller.setPlayer(controller.getBombers().get(0));
+				controller.setPlayer(controller.getBombers().getFirst());
 				BombGame.STATE = GameState.Solo;
 				BombGame.sound.soundEnd();
 				BombGame.sound.play("route");
@@ -662,7 +645,7 @@ public class GamePanel extends JPanel implements MouseListener{
 				texRandom = randomLevelTexture();
 				controller.initSolo();
 				controller.getBombers().add(new Bomberman(8*50,15*50,50,50,ID.Player1,type1,1));
-				controller.setPlayer(controller.getBombers().get(0));
+				controller.setPlayer(controller.getBombers().getFirst());
 				BombGame.STATE = GameState.Solo;
 				BombGame.sound.soundEnd();
 				BombGame.sound.play("route");
